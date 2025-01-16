@@ -97,4 +97,4 @@ document.getElementById('clearButton').addEventListener('click', () => {
     document.getElementById('result').textContent = '';
     document.getElementById('result').classList.add('hidden');
     document.getElementById('outputActions').classList.add('hidden');
-});j
+});
