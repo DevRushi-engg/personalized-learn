@@ -101,17 +101,55 @@ label {
 }
 
 .phase-content.open {
-  max-height: 1000px;
+  max-height: 60vh; /* Adjust based on your needs */
+  overflow-y: auto;
 }
 
 .step {
   padding: 1rem;
   border-top: 1px solid #30363d;
+  color: #e6edf3; /* Brighter text color */
 }
 
 .step p {
-  margin: 0;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+/* Resource Styling */
+.resources {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+}
+
+.resource-header {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
   color: #c9d1d9;
+}
+
+.resource {
+  margin: 0.5rem 0;
+}
+
+.resource-link {
+  color: #58a6ff;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: block;
+  padding: 4px 0;
+}
+
+.resource-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.resource-link:active {
+  color: #3b82f6;
 }
 
 /* Loading Spinner */
@@ -129,31 +167,26 @@ label {
   100% { transform: rotate(360deg); }
 }
 
+/* Utility Classes */
 .hidden {
   display: none;
 }
 
-/* Add resource section styles */
-.resources {
-  margin-top: 1rem;
-  padding: 1rem;
+/* Scrollbar Styling */
+.phase-content.open::-webkit-scrollbar {
+  width: 8px;
+}
+
+.phase-content.open::-webkit-scrollbar-track {
   background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
-.resource {
-  margin: 0.5rem 0;
+.phase-content.open::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
 }
 
-.resource a {
-  color: #58a6ff;
-  text-decoration: none;
-  font-size: 0.9rem;
+.phase-content.open::-webkit-scrollbar-thumb:hover {
+  background: #58a6ff;
 }
-
-.resource a:hover {
-  text-decoration: underline;
-}
-
-/* Rest remains same as previous */
