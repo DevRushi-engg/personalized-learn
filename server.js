@@ -16,48 +16,43 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Route to serve the frontend
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Initialize Groq client
 const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 // API endpoint to generate learning path
 app.post('/generate-learning-path', async (req, res) => {
-    const { goal, interests, skillLevel } = req.body;
+  const { goal, interests, skillLevel } = req.body;
 
-    if (!goal || !interests || !skillLevel) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
+  if (!goal || !interests || !skillLevel) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
-    try {
-        console.log('Generating learning path with Groq API...');
-        const prompt = `Create a personalized learning path for someone with the following details:
-                        - Goal: ${goal}
-                        - Interests: ${interests}
-                        - Skill Level: ${skillLevel}
-                        Provide a step-by-step plan with resources.`;
+  try {
+    const prompt = `Create a personalized learning path for someone with the following details:
+                    - Goal: ${goal}
+                    - Interests: ${interests}
+                    - Skill Level: ${skillLevel}
+                    Provide a step-by-step plan with resources.`;
 
-        console.log('Prompt:', prompt);
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+    });
 
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [{ role: 'user', content: prompt }],
-            model: 'llama-3.3-70b-versatile',
-        });
-
-        console.log('Groq API Response:', chatCompletion);
-
-        const learningPath = chatCompletion.choices[0].message.content;
-        res.json({ learningPath }); // Ensure this is sent correctly
-    } catch (error) {
-        console.error('Error generating learning path:', error);
-        res.status(500).json({ error: 'Failed to generate learning path' });
-    }
+    const learningPath = chatCompletion.choices[0].message.content;
+    res.json({ learningPath });
+  } catch (error) {
+    console.error('Error generating learning path:', error);
+    res.status(500).json({ error: 'Failed to generate learning path' });
+  }
 });
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
