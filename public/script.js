@@ -9,6 +9,7 @@ document.getElementById('learningForm').addEventListener('submit', async (e) => 
     // Show loading spinner
     document.getElementById('loadingSpinner').classList.remove('hidden');
     document.getElementById('result').classList.add('hidden');
+    document.getElementById('structuredPath').classList.add('hidden');
     document.getElementById('outputActions').classList.add('hidden');
   
     try {
@@ -30,9 +31,16 @@ document.getElementById('learningForm').addEventListener('submit', async (e) => 
         throw new Error('No learning path generated');
       }
   
-      // Display the learning path
+      // Display raw text
       document.getElementById('result').innerHTML = formatOutput(data.learningPath);
       document.getElementById('result').classList.remove('hidden');
+  
+      // Display structured path
+      const structuredPath = await generateStructuredPath(data.learningPath);
+      document.getElementById('structuredPath').innerHTML = structuredPath;
+      document.getElementById('structuredPath').classList.remove('hidden');
+  
+      // Show actions
       document.getElementById('outputActions').classList.remove('hidden');
     } catch (error) {
       console.error('Error:', error);
@@ -43,7 +51,7 @@ document.getElementById('learningForm').addEventListener('submit', async (e) => 
     }
   });
   
-  // Format Output with Markdown-like styling
+  // Format text output
   function formatOutput(text) {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
@@ -56,30 +64,151 @@ document.getElementById('learningForm').addEventListener('submit', async (e) => 
       .replace(/\n/g, '<br>'); // Line breaks
   }
   
-  // Copy to Clipboard
+  // Form Submission and other functions remain same until generateStructuredPath
+
+async function generateStructuredPath(learningPath) {
+    const lines = learningPath.split('\n').filter(line => line.trim() !== '');
+    let html = '';
+    let currentPhase = null;
+  
+    for (const line of lines) {
+      if (line.startsWith('**Phase') || line.startsWith('**Step')) {
+        if (currentPhase) html += `</div></div>`;
+        currentPhase = line.replace(/\*\*/g, '');
+        html += `
+          <div class="phase">
+            <div class="phase-header" onclick="togglePhase(this)">
+              <h3>${currentPhase}</h3>
+              <span>▼</span>
+            </div>
+            <div class="phase-content">
+        `;
+      } else {
+        const sanitizedStep = line.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+        const stepElement = document.createElement('div');
+        stepElement.className = 'step';
+        stepElement.innerHTML = `<p>${sanitizedStep}</p>`;
+  
+        // Only add resources to key steps
+        if (isResourceNeeded(sanitizedStep)) {
+          try {
+            const resources = await fetchResources(sanitizedStep);
+            if (resources.length > 0) {
+              const resourcesHTML = resources.map(resource => `
+                <div class="resource">
+                  <a href="${resource.url}" target="_blank" rel="noopener noreferrer">
+                    ${resource.title}
+                  </a>
+                </div>
+              `).join('');
+              
+              stepElement.innerHTML += `
+                <div class="resources">
+                  <div class="resource-header">Recommended Resources:</div>
+                  ${resourcesHTML}
+                </div>
+              `;
+            }
+          } catch (error) {
+            console.error('Resource fetch error:', error);
+          }
+        }
+  
+        html += stepElement.outerHTML;
+      }
+    }
+  
+    if (currentPhase) html += `</div></div>`;
+    return html;
+  }
+  
+  // Determine if resources are needed for this step
+  function isResourceNeeded(step) {
+    const keywords = ['learn', 'build', 'create', 'understand', 'practice'];
+    return keywords.some(keyword => step.toLowerCase().includes(keyword));
+  }
+  
+  // Enhanced fetchResources with error handling
+  async function fetchResources(step) {
+    const resources = [];
+    const query = encodeURIComponent(step);
+  
+    // 1. MDN Web Docs
+    try {
+      const mdnResponse = await fetch(`https://developer.mozilla.org/api/v1/search?q=${query}&locale=en-US`);
+      if (mdnResponse.ok) {
+        const data = await mdnResponse.json();
+        if (data.documents) {
+          resources.push(...data.documents.slice(0, 2).map(doc => ({
+            type: 'documentation',
+            title: `MDN: ${doc.title}`,
+            url: `https://developer.mozilla.org${doc.mdn_url}`
+          })));
+        }
+      }
+    } catch (mdnError) {
+      console.error('MDN API error:', mdnError);
+    }
+  
+    // 2. YouTube (requires API key)
+    try {
+      const youtubeResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=YOUR_YOUTUBE_KEY&maxResults=2&order=relevance&safeSearch=moderate`
+      );
+      if (youtubeResponse.ok) {
+        const data = await youtubeResponse.json();
+        if (data.items) {
+          resources.push(...data.items.map(item => ({
+            type: 'video',
+            title: `Video: ${item.snippet.title}`,
+            url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+          })));
+        }
+      }
+    } catch (youtubeError) {
+      console.error('YouTube API error:', youtubeError);
+    }
+  
+    return resources;
+  }
+  
+  
+  
+  // Toggle phase visibility
+  window.togglePhase = function(header) {
+    const content = header.nextElementSibling;
+    const arrow = header.querySelector('span');
+    content.classList.toggle('open');
+    arrow.style.transform = content.classList.contains('open') 
+      ? 'rotate(180deg)' 
+      : 'rotate(0deg)';
+  };
+  
+  // Copy to clipboard
   document.getElementById('copyButton').addEventListener('click', () => {
-    const resultText = document.getElementById('result').textContent;
-    navigator.clipboard.writeText(resultText).then(() => {
-      alert('Learning path copied to clipboard!');
+    const text = document.getElementById('result').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied to clipboard!');
     });
   });
   
-  // Download as Text
+  // Download as text
   document.getElementById('downloadButton').addEventListener('click', () => {
-    const resultText = document.getElementById('result').textContent;
-    const blob = new Blob([resultText], { type: 'text/plain' });
+    const text = document.getElementById('result').textContent;
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'learning-path.txt';
     a.click();
-    URL.revokeObjectURL(url);
   });
   
-  // Clear Form and Output
+  // Clear all
   document.getElementById('clearButton').addEventListener('click', () => {
     document.getElementById('learningForm').reset();
     document.getElementById('result').textContent = '';
+    document.getElementById('structuredPath').innerHTML = '';
     document.getElementById('result').classList.add('hidden');
+    document.getElementById('structuredPath').classList.add('hidden');
     document.getElementById('outputActions').classList.add('hidden');
   });
