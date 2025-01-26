@@ -37,7 +37,7 @@ app.post('/generate-learning-path', async (req, res) => {
                     - Goal: ${goal}
                     - Interests: ${interests}
                     - Skill Level: ${skillLevel}
-                    Provide a step-by-step plan with resources.`;
+                    Provide a step-by-step plan with resources (e.g., links to articles, videos, or documentation).`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],

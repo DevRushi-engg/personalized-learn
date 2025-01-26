@@ -36,7 +36,7 @@ document.getElementById('learningForm').addEventListener('submit', async (e) => 
     document.getElementById('result').classList.remove('hidden');
 
     // Display structured path
-    const structuredPath = await generateStructuredPath(data.learningPath);
+    const structuredPath = generateStructuredPath(data.learningPath);
     document.getElementById('structuredPath').innerHTML = structuredPath;
     document.getElementById('structuredPath').classList.remove('hidden');
 
@@ -65,7 +65,7 @@ function formatOutput(text) {
 }
 
 // Generate structured learning path
-async function generateStructuredPath(learningPath) {
+function generateStructuredPath(learningPath) {
   const lines = learningPath.split('\n').filter(line => line.trim() !== '');
   let html = '';
   let currentPhase = null;
@@ -84,100 +84,16 @@ async function generateStructuredPath(learningPath) {
       `;
     } else {
       const sanitizedStep = line.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-      const stepElement = document.createElement('div');
-      stepElement.className = 'step';
-      stepElement.innerHTML = `<p>${sanitizedStep}</p>`;
-
-      // Add resources only for relevant steps
-      if (isResourceNeeded(sanitizedStep)) {
-        try {
-          const resources = await fetchResources(sanitizedStep);
-          if (resources.length > 0) {
-            const resourcesHTML = resources.map(resource => `
-              <div class="resource">
-                <a href="${resource.url}" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   class="resource-link">
-                  ${resource.type === 'video' ? '🎥 ' : '📚 '}
-                  ${resource.title}
-                </a>
-              </div>
-            `).join('');
-
-            stepElement.innerHTML += `
-              <div class="resources">
-                <div class="resource-header">🔗 Recommended Resources:</div>
-                ${resourcesHTML}
-              </div>
-            `;
-          }
-        } catch (error) {
-          console.error('Resource fetch error:', error);
-        }
-      }
-
-      html += stepElement.outerHTML;
+      html += `
+        <div class="step">
+          <p>${sanitizedStep}</p>
+        </div>
+      `;
     }
   }
 
   if (currentPhase) html += `</div></div>`;
   return html;
-}
-
-// Determine if resources are needed for this step
-function isResourceNeeded(step) {
-  const keywords = ['learn', 'build', 'create', 'understand', 'practice'];
-  return keywords.some(keyword => step.toLowerCase().includes(keyword));
-}
-
-// Fetch resources for a step
-async function fetchResources(step) {
-  const resources = [];
-  const query = encodeURIComponent(step);
-
-  // 1. MDN Web Docs (using a proxy)
-  try {
-    const mdnResponse = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `https://developer.mozilla.org/api/v1/search?q=${query}&locale=en-US`
-      )}`
-    );
-    if (mdnResponse.ok) {
-      const data = await mdnResponse.json();
-      const mdnData = JSON.parse(data.contents);
-      if (mdnData.documents) {
-        resources.push(...mdnData.documents.slice(0, 2).map(doc => ({
-          type: 'documentation',
-          title: `MDN: ${doc.title}`,
-          url: `https://developer.mozilla.org${doc.mdn_url}`
-        })));
-      }
-    }
-  } catch (mdnError) {
-    console.error('MDN API error:', mdnError);
-  }
-
-  // 2. YouTube (requires API key)
-  try {
-    const youtubeResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=YOUR_YOUTUBE_KEY&maxResults=2&order=relevance&safeSearch=moderate`
-    );
-    if (youtubeResponse.ok) {
-      const data = await youtubeResponse.json();
-      if (data.items) {
-        resources.push(...data.items.map(item => ({
-          type: 'video',
-          title: `Video: ${item.snippet.title}`,
-          url: `https://www.youtube.com/watch?v=${item.id.videoId}`
-        })));
-      }
-    }
-  } catch (youtubeError) {
-    console.error('YouTube API error:', youtubeError);
-  }
-
-  return resources;
 }
 
 // Toggle phase visibility
