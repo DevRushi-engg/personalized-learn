@@ -64,7 +64,7 @@ function formatOutput(text) {
     .replace(/\n/g, '<br>'); // Line breaks
 }
 
-// Generate structured learning path
+// Modified generateStructuredPath function
 function generateStructuredPath(learningPath) {
   const lines = learningPath.split('\n').filter(line => line.trim() !== '');
   let html = '';
@@ -83,10 +83,19 @@ function generateStructuredPath(learningPath) {
           <div class="phase-content">
       `;
     } else {
-      const sanitizedStep = line.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+      const isResourceSection = line.includes('**Recommended Resources:**');
+      const sanitizedContent = line
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
+
       html += `
-        <div class="step">
-          <p>${sanitizedStep}</p>
+        <div class="step ${isResourceSection ? 'resources' : ''}">
+          <p>${sanitizedContent
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener" class="resource-link">$1</a>')
+            .replace(/📚/g, '<span class="resource-icon">📚</span>')
+            .replace(/🎥/g, '<span class="resource-icon">🎥</span>')}
+          </p>
         </div>
       `;
     }
